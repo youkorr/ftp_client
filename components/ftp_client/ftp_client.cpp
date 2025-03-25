@@ -128,7 +128,7 @@ bool FTPClient::create_control_socket() {
     return true;
 }
 
-bool FTPClient::connect_to_server() {
+bool FTPClient::connect() {
     clear_error();
 
     // Resolve hostname
