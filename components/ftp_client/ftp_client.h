@@ -1,104 +1,108 @@
-# ftp_client.h
+#pragma once
 
-#ifndef ESPHOME_FTP_CLIENT_H
+#include "esp_log.h"
+#include "lwip/err.h"
+#include "lwip/sockets.h"
+#include "lwip/sys.h"
+#include "lwip/netdb.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "esp_tls.h"
 
-#define ESPHOME_FTP_CLIENT_H
-
-
-
-#include "esphome.h"
-
-#include <WiFiClient.h>
-
-
+#include <string>
+#include <vector>
+#include <functional>
 
 namespace esphome {
-
 namespace ftp_client {
 
-
-
-class FTPClient : public Component {
-
- public:
-
-  void setup() override;
-
-  void loop() override;
-
-  
-
-  // Configuration du serveur FTP
-
-  void set_server(const std::string& server) { server_ = server; }
-
-  void set_port(uint16_t port) { port_ = port; }
-
-  
-
-  // Configuration des identifiants
-
-  void set_username(const std::string& username) { username_ = username; }
-
-  void set_password(const std::string& password) { password_ = password; }
-
-  
-
-  // Méthodes de gestion de la connexion
-
-  bool connect();
-
-  void disconnect();
-
-  bool is_connected() const;
-
-  
-
-  // Méthode pour télécharger un fichier
-
-  bool download_file(const std::string& remote_path, 
-
-                     const std::string& local_path);
-
-
-
- private:
-
-  WiFiClient client_;
-
-  
-
-  // Paramètres de connexion
-
-  std::string server_;
-
-  uint16_t port_ = 21;  // Port FTP par défaut
-
-  std::string username_;
-
-  std::string password_;
-
-  
-
-  // États internes
-
-  bool connected_ = false;
-
-  
-
-  // Méthodes privées pour la gestion du protocole FTP
-
-  bool send_command(const std::string& cmd);
-
-  std::string read_response();
-
-  bool login();
-
+enum class FTPMode {
+    ACTIVE,
+    PASSIVE
 };
 
+enum class FTPError {
+    NONE,
+    CONNECTION_FAILED,
+    LOGIN_FAILED,
+    FILE_NOT_FOUND,
+    TRANSFER_ERROR,
+    TIMEOUT,
+    NETWORK_ERROR
+};
 
+class FTPClient {
+public:
+    FTPClient();
+    ~FTPClient();
 
-}  // namespace ftp_client
+    // Configuration methods
+    void set_server(const std::string& server);
+    void set_port(uint16_t port);
+    void set_username(const std::string& username);
+    void set_password(const std::string& password);
+    void set_mode(FTPMode mode);
+    void set_transfer_buffer_size(size_t size);
+    void set_timeout_ms(uint32_t timeout);
 
-}  // namespace esphome
+    // File operations
+    bool connect();
+    void disconnect();
+
+    bool list_files(
+        std::vector<std::string>& files, 
+        std::function<void(size_t progress)> progress_callback = nullptr
+    );
+
+    bool download_file(
+        const std::string& remote_path, 
+        const std::string& local_path,
+        std::function<void(size_t downloaded, size_t total)> progress_callback = nullptr
+    );
+
+    // Error handling
+    FTPError get_last_error() const { return last_error_; }
+    std::string get_error_message() const;
+
+private:
+    // Connection details
+    std::string server_;
+    uint16_t port_{21};
+    std::string username_;
+    std::string password_;
+    FTPMode mode_{FTPMode::PASSIVE};
+
+    // Network sockets
+    int control_socket_{-1};
+    int data_socket_{-1};
+
+    // Error and configuration
+    FTPError last_error_{FTPError::NONE};
+    size_t transfer_buffer_size_{1024}; // 1 KB default buffer
+    uint32_t timeout_ms_{30000}; // 30 seconds default timeout
+
+    // Internal network methods
+    bool create_control_socket();
+    bool create_data_socket();
+    bool resolve_hostname();
+
+    // FTP protocol methods
+    bool send_command(const std::string& cmd, std::string& response);
+    bool login();
+    bool prepare_data_connection();
+
+    // Utility methods
+    void set_error(FTPError error);
+    void clear_error();
+
+    // Network address storage
+    struct sockaddr_in server_addr_;
+    struct hostent* host_entry_{nullptr};
+
+    // Logging tag
+    static constexpr const char* TAG = "FTPClient";
+};
+
+} // namespace ftp_client
+} // namespace esphome
 
