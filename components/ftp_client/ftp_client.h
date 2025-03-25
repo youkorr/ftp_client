@@ -1,5 +1,6 @@
 #pragma once
 
+#include "esphome/core/component.h"  // Ajout pour ESPHome
 #include "esp_log.h"
 #include "lwip/err.h"
 #include "lwip/sockets.h"
@@ -31,7 +32,7 @@ enum class FTPError {
     NETWORK_ERROR
 };
 
-class FTPClient {
+class FTPClient : public Component {  // Ajout de Component
 public:
     FTPClient();
     ~FTPClient();
@@ -44,10 +45,12 @@ public:
     void set_mode(FTPMode mode);
     void set_transfer_buffer_size(size_t size);
     void set_timeout_ms(uint32_t timeout);
+
     // Nouvelle méthode pour ajouter des fichiers
     void add_file(const std::string& source, const std::string& file_id);
+
     // File operations
-    bool connect();
+    bool connect_to_server();  // Renommé pour éviter un conflit
     void disconnect();
 
     bool list_files(
@@ -60,6 +63,10 @@ public:
         const std::string& local_path,
         std::function<void(size_t downloaded, size_t total)> progress_callback = nullptr
     );
+
+    // Méthodes ESPHome
+    void setup() override;  // Ajout de setup pour l'initialisation
+    void loop() override;   // Ajout de loop pour l'exécution continue
 
     // Error handling
     FTPError get_last_error() const { return last_error_; }
@@ -108,4 +115,5 @@ private:
 
 } // namespace ftp_client
 } // namespace esphome
+
 
