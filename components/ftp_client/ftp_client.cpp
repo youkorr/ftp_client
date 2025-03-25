@@ -22,10 +22,10 @@ FTPClient::FTPClient() {
 FTPClient::~FTPClient() {
     disconnect();
 }
-void FTPClient::add_file(const std::string& source, const std::string& file_id) {
+void FTPClient::add_file(const std::string& file, const std::string& file_id) {
     // Ajoutez ici la logique pour gérer les fichiers
-    files_.emplace_back(source, file_id);
-    ESP_LOGI(TAG, "File added: %s -> %s", source.c_str(), file_id.c_str());
+    files_.emplace_back(file, file_id);
+    ESP_LOGI(TAG, "File added: %s -> %s", file.c_str(), file_id.c_str());
 }
 void FTPClient::setup() {
     // Initialisation du client FTP
