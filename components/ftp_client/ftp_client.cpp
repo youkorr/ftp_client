@@ -102,7 +102,7 @@ bool FTPClient::create_control_socket() {
     setsockopt(control_socket_, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
 
     // Connect to server
-    if (connect(control_socket_, (struct sockaddr*)&server_addr_, sizeof(server_addr_)) < 0) {
+    if (::connect(control_socket_, (struct sockaddr*)&server_addr_, sizeof(server_addr_)) < 0) {
         set_error(FTPError::CONNECTION_FAILED);
         close(control_socket_);
         control_socket_ = -1;
