@@ -2,17 +2,19 @@ import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome import automation
 from esphome.components import switch
-from esphome.const import CONF_ID, CONF_PASSWORD, CONF_PORT, CONF_SERVER, CONF_USERNAME
+from esphome.const import CONF_ID, CONF_PASSWORD, CONF_PORT, CONF_USERNAME
 
-CODEOWNERS = ["@your_github_username"]
+# Déclaration manuelle des constantes manquantes
+CONF_SERVER = "server"
+CONF_FILES = "files"
+CONF_SOURCE = "source"
+CONF_FILE_ID = "id"
+
+CODEOWNERS = ["@votre_nom_github"]
 
 ftp_ns = cg.esphome_ns.namespace('ftp')
 FTPClient = ftp_ns.class_('FTPClient', cg.Component)
 FTPDownloadSwitch = ftp_ns.class_('FTPDownloadSwitch', switch.Switch, cg.Component)
-
-CONF_FILES = 'files'
-CONF_SOURCE = 'source'
-CONF_FILE_ID = 'id'
 
 FTP_FILE_SCHEMA = cv.Schema({
     cv.Required(CONF_SOURCE): cv.string,
@@ -42,4 +44,5 @@ async def to_code(config):
             source = file_config[CONF_SOURCE]
             file_id = file_config[CONF_FILE_ID]
             cg.add(var.add_file(source, file_id))
+
 
