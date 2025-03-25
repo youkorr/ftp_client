@@ -44,7 +44,8 @@ public:
     void set_mode(FTPMode mode);
     void set_transfer_buffer_size(size_t size);
     void set_timeout_ms(uint32_t timeout);
-
+    // Nouvelle méthode pour ajouter des fichiers
+    void add_file(const std::string& source, const std::string& file_id);
     // File operations
     bool connect();
     void disconnect();
@@ -75,6 +76,8 @@ private:
     // Network sockets
     int control_socket_{-1};
     int data_socket_{-1};
+
+    std::vector<std::pair<std::string, std::string>> files_;
 
     // Error and configuration
     FTPError last_error_{FTPError::NONE};
