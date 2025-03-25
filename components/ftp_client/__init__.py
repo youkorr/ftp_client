@@ -12,7 +12,8 @@ CONF_FILE_ID = "id"
 
 CODEOWNERS = ["@votre_nom_github"]
 
-ftp_ns = cg.esphome_ns.namespace('ftp')
+# CHANGEMENT : Utilisation de "ftp_client" pour correspondre à ftp_client.h
+ftp_ns = cg.esphome_ns.namespace('ftp_client')  
 FTPClient = ftp_ns.class_('FTPClient', cg.Component)
 FTPDownloadSwitch = ftp_ns.class_('FTPDownloadSwitch', switch.Switch, cg.Component)
 
