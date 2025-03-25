@@ -2,6 +2,12 @@
 #include "esp_system.h"
 #include "esp_wifi.h"
 #include "nvs_flash.h"
+#include <cstring>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <unistd.h>
 
 namespace esphome {
 namespace ftp_client {
@@ -9,6 +15,8 @@ namespace ftp_client {
 FTPClient::FTPClient() {
     // Initialize network-related structures
     memset(&server_addr_, 0, sizeof(server_addr_));
+    control_socket_ = -1;
+    data_socket_ = -1;
 }
 
 FTPClient::~FTPClient() {
@@ -91,6 +99,7 @@ bool FTPClient::create_control_socket() {
     // Create socket
     control_socket_ = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (control_socket_ < 0) {
+        ESP_LOGE(TAG, "Failed to create socket: %s", strerror(errno));
         set_error(FTPError::NETWORK_ERROR);
         return false;
     }
@@ -99,10 +108,17 @@ bool FTPClient::create_control_socket() {
     struct timeval timeout;
     timeout.tv_sec = timeout_ms_ / 1000;
     timeout.tv_usec = (timeout_ms_ % 1000) * 1000;
-    setsockopt(control_socket_, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
+    if (setsockopt(control_socket_, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) < 0) {
+        ESP_LOGE(TAG, "Failed to set socket timeout: %s", strerror(errno));
+        close(control_socket_);
+        control_socket_ = -1;
+        set_error(FTPError::NETWORK_ERROR);
+        return false;
+    }
 
     // Connect to server
     if (::connect(control_socket_, (struct sockaddr*)&server_addr_, sizeof(server_addr_)) < 0) {
+        ESP_LOGE(TAG, "Failed to connect to server: %s", strerror(errno));
         set_error(FTPError::CONNECTION_FAILED);
         close(control_socket_);
         control_socket_ = -1;
@@ -142,7 +158,7 @@ bool FTPClient::connect() {
 
 bool FTPClient::login() {
     std::string response;
-    
+
     // Send username
     std::string user_cmd = "USER " + username_ + "\r\n";
     send(control_socket_, user_cmd.c_str(), user_cmd.length(), 0);
@@ -170,7 +186,7 @@ bool FTPClient::login() {
 }
 
 bool FTPClient::list_files(
-    std::vector<std::string>& files, 
+    std::vector<std::string>& files,
     std::function<void(size_t progress)> progress_callback
 ) {
     if (!prepare_data_connection()) {
@@ -198,7 +214,7 @@ bool FTPClient::list_files(
             std::string filename = file_list.substr(0, pos);
             files.push_back(filename);
             file_list.erase(0, pos + 1);
-            
+
             file_count++;
             if (progress_callback) {
                 progress_callback(file_count);
@@ -228,23 +244,54 @@ bool FTPClient::prepare_data_connection() {
         }
         buffer[bytes_received] = '\0';
 
-        // Parse PASV response to get data port
-        // Example response: 227 Entering Passive Mode (192,168,1,100,10,20)
-        // Need to extract IP and port from the response
-        // This is a simplified placeholder - you'll need to implement proper parsing
+        // Parse PASV response
+        const char* start = strstr(buffer, "(");
+        const char* end = strstr(buffer, ")");
+        if (!start || !end) {
+            ESP_LOGE(TAG, "Invalid PASV response: %s", buffer);
+            set_error(FTPError::NETWORK_ERROR);
+            return false;
+        }
+
+        // Extract IP and port
+        int ip1, ip2, ip3, ip4, port_high, port_low;
+        sscanf(start + 1, "%d,%d,%d,%d,%d,%d", &ip1, &ip2, &ip3, &ip4, &port_high, &port_low);
+
+        uint32_t data_ip = (ip1 << 24) | (ip2 << 16) | (ip3 << 8) | ip4;
+        uint16_t data_port = (port_high << 8) | port_low;
+
+        // Connect to data port
+        struct sockaddr_in data_addr;
+        memset(&data_addr, 0, sizeof(data_addr));
+        data_addr.sin_family = AF_INET;
+        data_addr.sin_port = htons(data_port);
+        data_addr.sin_addr.s_addr = htonl(data_ip);
+
+        data_socket_ = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+        if (data_socket_ < 0) {
+            ESP_LOGE(TAG, "Failed to create data socket: %s", strerror(errno));
+            set_error(FTPError::NETWORK_ERROR);
+            return false;
+        }
+
+        if (::connect(data_socket_, (struct sockaddr*)&data_addr, sizeof(data_addr)) < 0) {
+            ESP_LOGE(TAG, "Failed to connect to data socket: %s", strerror(errno));
+            close(data_socket_);
+            data_socket_ = -1;
+            set_error(FTPError::NETWORK_ERROR);
+            return false;
+        }
+
+        return true;
     } else {
-        // Active mode - more complex setup
-        // Need to bind to a local port and send PORT command
-        // Not implemented in this example
+        // Active mode is not implemented in this example
         set_error(FTPError::NETWORK_ERROR);
         return false;
     }
-
-    return true;
 }
 
 bool FTPClient::download_file(
-    const std::string& remote_path, 
+    const std::string& remote_path,
     const std::string& local_path,
     std::function<void(size_t downloaded, size_t total)> progress_callback
 ) {
@@ -298,7 +345,7 @@ void FTPClient::disconnect() {
     if (control_socket_ != -1) {
         std::string quit_cmd = "QUIT\r\n";
         send(control_socket_, quit_cmd.c_str(), quit_cmd.length(), 0);
-        
+
         // Close sockets
         close(control_socket_);
         control_socket_ = -1;
