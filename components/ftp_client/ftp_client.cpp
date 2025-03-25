@@ -20,7 +20,34 @@ FTPClient::~FTPClient() {
 
 void FTPClient::setup() {
     ESP_LOGCONFIG(TAG, "Setting up FTP Client...");
-    dump_config();  // Afficher la configuration
+    dump_config();
+
+    // Télécharger les fichiers configurés dans le YAML
+    for (const auto& file_info : files_) {
+        ESP_LOGI(TAG, "Downloading file: %s from %s", file_info.file_id.c_str(), file_info.source.c_str());
+        // Extraire le nom du fichier local à partir de l'URL FTP
+        size_t last_slash_pos = file_info.source.find_last_of('/');
+        std::string local_file_name;
+        if (last_slash_pos != std::string::npos) {
+            local_file_name = file_info.source.substr(last_slash_pos + 1);
+        } else {
+            local_file_name = file_info.file_id; // Si pas de slash, utiliser l'ID
+        }
+
+        // Utiliser /config/ comme répertoire de destination
+        std::string local_path = "/config/" + local_file_name;
+        ESP_LOGI(TAG, "Local path: %s", local_path.c_str());
+
+        // Télécharger le fichier
+        if (connect()) {
+            if (!download_file(file_info.source, local_path)) {
+                ESP_LOGE(TAG, "Failed to download file: %s", file_info.source.c_str());
+            }
+            disconnect();
+        } else {
+            ESP_LOGE(TAG, "Failed to connect to FTP server to download file: %s", file_info.source.c_str());
+        }
+    }
 }
 
 void FTPClient::loop() {
@@ -35,6 +62,11 @@ void FTPClient::dump_config() {
     ESP_LOGCONFIG(TAG, "  FTP Mode: %s", mode_ == FTPMode::PASSIVE ? "PASSIVE" : "ACTIVE");
     ESP_LOGCONFIG(TAG, "  Transfer Buffer Size: %zu", transfer_buffer_size_);
     ESP_LOGCONFIG(TAG, "  Timeout (ms): %u", timeout_ms_);
+
+    ESP_LOGCONFIG(TAG, "  Files to download:");
+    for (const auto& file_info : files_) {
+        ESP_LOGCONFIG(TAG, "    - Source: %s, ID: %s", file_info.source.c_str(), file_info.file_id.c_str());
+    }
 }
 
 void FTPClient::add_file(const std::string& source, const std::string& file_id) {
@@ -478,6 +510,33 @@ void FTPClient::disconnect() {
 void FTPClient::setup() {
     ESP_LOGCONFIG(TAG, "Setting up FTP Client...");
     dump_config();
+
+    // Télécharger les fichiers configurés dans le YAML
+    for (const auto& file_info : files_) {
+        ESP_LOGI(TAG, "Downloading file: %s from %s", file_info.file_id.c_str(), file_info.source.c_str());
+        // Extraire le nom du fichier local à partir de l'URL FTP
+        size_t last_slash_pos = file_info.source.find_last_of('/');
+        std::string local_file_name;
+        if (last_slash_pos != std::string::npos) {
+            local_file_name = file_info.source.substr(last_slash_pos + 1);
+        } else {
+            local_file_name = file_info.file_id; // Si pas de slash, utiliser l'ID
+        }
+
+        // Utiliser /config/ comme répertoire de destination
+        std::string local_path = "/config/" + local_file_name;
+        ESP_LOGI(TAG, "Local path: %s", local_path.c_str());
+
+        // Télécharger le fichier
+        if (connect()) {
+            if (!download_file(file_info.source, local_path)) {
+                ESP_LOGE(TAG, "Failed to download file: %s", file_info.source.c_str());
+            }
+            disconnect();
+        } else {
+            ESP_LOGE(TAG, "Failed to connect to FTP server to download file: %s", file_info.source.c_str());
+        }
+    }
 }
 
 void FTPClient::loop() {
@@ -491,9 +550,15 @@ void FTPClient::dump_config() {
     ESP_LOGCONFIG(TAG, "  Mode: %s", mode_ == FTPMode::PASSIVE ? "PASSIVE" : "ACTIVE");
     ESP_LOGCONFIG(TAG, "  Transfer Buffer Size: %zu", transfer_buffer_size_);
     ESP_LOGCONFIG(TAG, "  Timeout: %u ms", timeout_ms_);
+
+    ESP_LOGCONFIG(TAG, "  Files to download:");
+    for (const auto& file_info : files_) {
+        ESP_LOGCONFIG(TAG, "    - Source: %s, ID: %s", file_info.source.c_str(), file_info.file_id.c_str());
+    }
 }
 
 
 } // namespace ftp_client
 } // namespace esphome
+
 
