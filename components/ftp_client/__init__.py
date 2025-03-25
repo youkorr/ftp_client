@@ -21,6 +21,16 @@ FTP_MODES = {
     'PASSIVE': ftp_client_ns.FTPMode.PASSIVE
 }
 
+def validate_ftp_config(config):
+    """Additional validation for FTP configuration"""
+    if len(config[CONF_USERNAME]) < 1:
+        raise cv.Invalid("Username must not be empty")
+    
+    if len(config[CONF_PASSWORD]) < 1:
+        raise cv.Invalid("Password must not be empty")
+    
+    return config
+
 CONFIG_SCHEMA = cv.Schema({
     cv.Required(CONF_SERVER): cv.string,
     cv.Optional(CONF_PORT, default=21): cv.port,
@@ -32,6 +42,9 @@ CONFIG_SCHEMA = cv.Schema({
     cv.Optional('mode', default='PASSIVE'): cv.enum(FTP_MODES, upper=True),
     cv.Optional('buffer_size', default=1024): cv.int_range(min=128, max=8192),
     cv.Optional('timeout', default=30000): cv.int_range(min=1000, max=60000),
+}).extend({
+    # Add validation directly in the schema extension
+    cv.check_schema(validate_ftp_config)
 })
 
 async def to_code(config):
@@ -50,16 +63,3 @@ async def to_code(config):
     cg.add(var.set_timeout_ms(config['timeout']))
     
     return var
-
-def validate_ftp_config(config):
-    """Additional validation for FTP configuration"""
-    if len(config[CONF_USERNAME]) < 1:
-        raise cv.Invalid("Username must not be empty")
-    
-    if len(config[CONF_PASSWORD]) < 1:
-        raise cv.Invalid("Password must not be empty")
-    
-    return config
-
-# Add the validation to the configuration schema
-CONFIG_SCHEMA = CONFIG_SCHEMA.extend(validate_ftp_config)
