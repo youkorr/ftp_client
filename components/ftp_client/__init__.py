@@ -1,11 +1,14 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
-from esphome.const import (
-    CONF_ID, CONF_SERVER, CONF_USERNAME, 
-    CONF_PASSWORD, CONF_PORT, CONF_MODE
-)
 
-# Remove dependency on storage
+# Define constants explicitly since import from esphome.const failed
+CONF_ID = 'id'
+CONF_SERVER = 'server'
+CONF_USERNAME = 'username'
+CONF_PASSWORD = 'password'
+CONF_PORT = 'port'
+CONF_MODE = 'mode'
+
 MULTI_CONF = True
 ftp_client_ns = cg.esphome_ns.namespace('ftp_client')
 
@@ -57,9 +60,6 @@ def validate_ftp_config(config):
         raise cv.Invalid("Password must not be empty")
     
     return config
-
-# Add the validation to the configuration schema
-CONFIG_SCHEMA = CONFIG_SCHEMA.extend(validate_ftp_config)
 
 # Add the validation to the configuration schema
 CONFIG_SCHEMA = CONFIG_SCHEMA.extend(validate_ftp_config)
