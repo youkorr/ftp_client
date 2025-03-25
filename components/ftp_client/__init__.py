@@ -7,7 +7,7 @@ from esphome.const import CONF_ID, CONF_PASSWORD, CONF_PORT, CONF_USERNAME
 # Déclaration manuelle des constantes manquantes
 CONF_SERVER = "server"
 CONF_FILES = "files"
-CONF_SOURCE = "source"
+CONF_SOURCE = "file"
 CONF_FILE_ID = "id"
 
 CODEOWNERS = ["@votre_nom_github"]
