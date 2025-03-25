@@ -27,6 +27,14 @@ void FTPClient::add_file(const std::string& source, const std::string& file_id) 
     files_.emplace_back(source, file_id);
     ESP_LOGI(TAG, "File added: %s -> %s", source.c_str(), file_id.c_str());
 }
+void FTPClient::setup() {
+    // Initialisation du client FTP
+    ESP_LOGI(TAG, "FTPClient setup");
+}
+
+void FTPClient::loop() {
+    // Boucle principale (peut être vide si non utilisée)
+}
 void FTPClient::set_server(const std::string& server) {
     server_ = server;
 }
