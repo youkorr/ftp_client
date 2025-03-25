@@ -101,8 +101,8 @@ bool FTPClient::create_control_socket() {
     timeout.tv_usec = (timeout_ms_ % 1000) * 1000;
     setsockopt(control_socket_, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
 
-    // Connect to server
-    if (connect(control_socket_, (struct sockaddr*)&server_addr_, sizeof(server_addr_)) < 0) {
+    // Use ::connect to explicitly call the system connect function
+    if (::connect(control_socket_, (struct sockaddr*)&server_addr_, sizeof(server_addr_)) < 0) {
         set_error(FTPError::CONNECTION_FAILED);
         close(control_socket_);
         control_socket_ = -1;
