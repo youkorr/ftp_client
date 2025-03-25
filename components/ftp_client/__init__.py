@@ -8,10 +8,9 @@ CONF_USERNAME = 'username'
 CONF_PASSWORD = 'password'
 CONF_PORT = 'port'
 CONF_MODE = 'mode'
-
 MULTI_CONF = True
-ftp_client_ns = cg.esphome_ns.namespace('ftp_client')
 
+ftp_client_ns = cg.esphome_ns.namespace('ftp_client')
 # Remove inheritance from StorageSource if it's no longer available
 FTPClient = ftp_client_ns.class_('FTPClient', cg.Component)
 
@@ -33,7 +32,8 @@ def validate_config(config):
     
     return config
 
-CONFIG_SCHEMA = cv.Schema({
+# Create the base schema first
+BASE_CONFIG_SCHEMA = cv.Schema({
     cv.Required(CONF_SERVER): cv.string,
     cv.Optional(CONF_PORT, default=21): cv.port,
     cv.Required(CONF_USERNAME): cv.string,
@@ -44,7 +44,10 @@ CONFIG_SCHEMA = cv.Schema({
     cv.Optional('mode', default='PASSIVE'): cv.enum(FTP_MODES, upper=True),
     cv.Optional('buffer_size', default=1024): cv.int_range(min=128, max=8192),
     cv.Optional('timeout', default=30000): cv.int_range(min=1000, max=60000),
-}).extend(validate_config)
+})
+
+# Create the final configuration schema by applying the validation function
+CONFIG_SCHEMA = BASE_CONFIG_SCHEMA.extend(validate_config)
 
 async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
