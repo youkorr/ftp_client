@@ -22,7 +22,11 @@ FTPClient::FTPClient() {
 FTPClient::~FTPClient() {
     disconnect();
 }
-
+void FTPClient::add_file(const std::string& source, const std::string& file_id) {
+    // Ajoutez ici la logique pour gérer les fichiers
+    files_.emplace_back(source, file_id);
+    ESP_LOGI(TAG, "File added: %s -> %s", source.c_str(), file_id.c_str());
+}
 void FTPClient::set_server(const std::string& server) {
     server_ = server;
 }
