@@ -50,7 +50,7 @@ public:
     void add_file(const std::string& source, const std::string& file_id);
 
     // File operations
-    bool connect_to_server();  // Renommé pour éviter un conflit
+    bool connect();  // Ajout de la déclaration de connect()
     void disconnect();
 
     bool list_files(
