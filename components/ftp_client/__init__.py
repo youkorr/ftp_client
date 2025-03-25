@@ -1,16 +1,16 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
-from esphome.components import storage
 from esphome.const import (
     CONF_ID, CONF_SERVER, CONF_USERNAME, 
     CONF_PASSWORD, CONF_PORT, CONF_MODE
 )
 
-DEPENDENCIES = ['storage']
+# Remove dependency on storage
 MULTI_CONF = True
-
 ftp_client_ns = cg.esphome_ns.namespace('ftp_client')
-FTPClient = ftp_client_ns.class_('FTPClient', storage.StorageSource)
+
+# Remove inheritance from StorageSource if it's no longer available
+FTPClient = ftp_client_ns.class_('FTPClient', cg.Component)
 
 # Enum for FTP modes
 FTP_MODES = {
@@ -25,7 +25,7 @@ CONFIG_SCHEMA = cv.Schema({
     cv.Required(CONF_PASSWORD): cv.string,
     cv.Required(CONF_ID): cv.declare_id(FTPClient),
     
-    # New configuration options
+    # Configuration options
     cv.Optional('mode', default='PASSIVE'): cv.enum(FTP_MODES, upper=True),
     cv.Optional('buffer_size', default=1024): cv.int_range(min=128, max=8192),
     cv.Optional('timeout', default=30000): cv.int_range(min=1000, max=60000),
@@ -57,6 +57,9 @@ def validate_ftp_config(config):
         raise cv.Invalid("Password must not be empty")
     
     return config
+
+# Add the validation to the configuration schema
+CONFIG_SCHEMA = CONFIG_SCHEMA.extend(validate_ftp_config)
 
 # Add the validation to the configuration schema
 CONFIG_SCHEMA = CONFIG_SCHEMA.extend(validate_ftp_config)
