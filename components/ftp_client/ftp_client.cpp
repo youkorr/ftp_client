@@ -14,7 +14,10 @@ FTPClient::FTPClient() {
 FTPClient::~FTPClient() {
     disconnect();
 }
-
+void FTPClient::add_file(const std::string& source, const std::string& file_id) {
+    // Vous pouvez stocker ces informations si nécessaire
+    files_.push_back({source, file_id});
+}
 void FTPClient::set_server(const std::string& server) {
     server_ = server;
 }
